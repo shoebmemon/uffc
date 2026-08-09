@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UFFC Gym — Member &amp; Fee Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.25.6/babel.min.js"></script>
+<style>
+  :root{
+    --bg:#0E1012; --surface:#1A1D21; --surfaceRaised:#22262B; --border:#2C3036;
+    --borderLight:#383D44; --text:#F4F2EC; --textMuted:#9BA1AA; --textFaint:#5E646D;
+    --accent:#CFFF3D; --danger:#FF4B5C; --dangerDim:#3A1E22; --warning:#FFB020;
+    --warningDim:#3A2E14; --success:#38D67F; --successDim:#173423;
+  }
+  *{box-sizing:border-box;}
+  html,body,#root{height:100%;margin:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;}
+  ::selection{background:var(--accent);color:var(--bg);}
+  .disp{font-family:'Bebas Neue',sans-serif;letter-spacing:.03em;}
+  a{color:inherit;}
+  button{font-family:inherit;cursor:pointer;border:none;}
+  input,select,textarea{font-family:inherit;}
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-thumb{background:var(--borderLight);border-radius:4px;}
+
+  .app{display:flex;min-height:100vh;}
+  .sidebar{display:none;flex-direction:column;width:224px;flex-shrink:0;border-right:1px solid var(--border);background:var(--surface);}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:20;}
+  .main-col{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .content{flex:1;padding:16px;padding-bottom:96px;max-width:1080px;width:100%;margin:0 auto;}
+  .bottomnav{display:flex;justify-content:space-around;position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--surface);z-index:30;}
+  .bottomnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 8px;background:transparent;color:var(--textFaint);font-weight:600;font-size:10px;}
+  .bottomnav button.active{color:var(--accent);}
+  .navicon{font-size:18px;line-height:1;}
+
+  @media (min-width:768px){
+    .sidebar{display:flex;}
+    .topbar{display:none;}
+    .bottomnav{display:none;}
+    .content{padding:32px;padding-bottom:32px;}
+  }
+
+  .logo{display:flex;align-items:center;gap:10px;padding:20px;}
+  .logo-badge{width:36px;height:36px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;transform:rotate(-6deg);font-size:18px;flex-shrink:0;}
+  .logo-title{font-size:20px;letter-spacing:.06em;line-height:1;}
+  .logo-sub{font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--textFaint);margin-top:3px;}
+
+  .navlist{flex:1;padding:8px 12px;display:flex;flex-direction:column;gap:4px;}
+  .navitem{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;font-size:14px;font-weight:600;background:transparent;color:var(--textMuted);text-align:left;width:100%;}
+  .navitem.active{background:rgba(207,255,61,0.1);color:var(--accent);}
+  .navfoot{padding:16px;font-size:11px;color:var(--textFaint);}
+
+  h1.page-title{font-size:32px;margin:0;}
+  @media (min-width:768px){ h1.page-title{font-size:38px;} }
+
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media (min-width:1024px){ .stats-grid{grid-template-columns:repeat(4,1fr);gap:16px;} }
+  .stat-card{border-radius:12px;padding:16px;background:var(--surface);border:1px solid var(--border);}
+  .stat-icon{font-size:18px;}
+  .stat-val{font-size:30px;margin-top:6px;}
+  .stat-label{font-size:12px;margin-top:2px;color:var(--textMuted);}
+
+  .panel{border-radius:12px;overflow:hidden;background:var(--surface);border:1px solid var(--border);margin-top:20px;}
+  .panel-head{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);}
+  .panel-head .title{font-size:18px;letter-spacing:.05em;}
+  .panel-count{margin-left:auto;font-size:12px;font-weight:700;border-radius:999px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:var(--surfaceRaised);}
+  .panel-empty{padding:24px 16px;font-size:14px;text-align:center;color:var(--textFaint);}
+  .panel-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border);}
+  .panel-row:first-child{border-top:none;}
+  .row-name{font-size:14px;font-weight:600;}
+  .row-sub{font-size:12px;color:var(--textMuted);}
+
+  .btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:8px 14px;border-radius:8px;background:var(--surfaceRaised);color:var(--text);border:1px solid var(--border);}
+  .btn-accent{background:var(--accent);color:var(--bg);border:none;}
+  .btn-wa{background:var(--successDim);color:var(--success);border:none;}
+  .btn-sm{padding:6px 10px;font-size:12px;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .iconbtn{padding:8px;border-radius:8px;background:var(--surfaceRaised);border:1px solid var(--border);color:var(--textMuted);font-size:14px;line-height:1;}
+
+  .badge{display:inline-block;font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:.08em;padding:4px 10px;border-radius:6px;transform:skewX(-6deg);}
+  .badge span{display:inline-block;transform:skewX(6deg);}
+  .badge-overdue{background:var(--dangerDim);color:var(--danger);}
+  .badge-duesoon{background:var(--warningDim);color:var(--warning);}
+  .badge-active{background:var(--successDim);color:var(--success);}
+
+  .row-between{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .search-wrap{position:relative;max-width:340px;margin-top:16px;}
+  .search-wrap .ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--textFaint);font-size:13px;}
+  .input{width:100%;background:var(--surfaceRaised);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:14px;}
+  .input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(207,255,61,.15);}
+  .search-wrap .input{padding-left:34px;}
+
+  .member-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:16px;}
+  @media (min-width:1024px){ .member-grid{grid-template-columns:1fr 1fr;} }
+  .member-card{border-radius:12px;padding:16px;background:var(--surface);border:1px solid var(--border);}
+  .member-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+  .member-name{font-weight:700;}
+  .member-sub{font-size:12px;color:var(--textMuted);margin-top:2px;}
+  .member-meta{margin-top:12px;display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--textMuted);}
+  .member-actions{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+
+  .plan-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px;}
+  @media (min-width:640px){ .plan-grid{grid-template-columns:1fr 1fr;} }
+  @media (min-width:1024px){ .plan-grid{grid-template-columns:1fr 1fr 1fr;} }
+  .plan-card{border-radius:12px;padding:20px;background:var(--surface);border:1px solid var(--border);display:flex;flex-direction:column;}
+  .plan-name{font-size:24px;}
+  .plan-price{font-size:30px;color:var(--accent);}
+  .plan-price-sub{font-size:12px;color:var(--textFaint);}
+  .plan-desc{font-size:14px;margin-top:12px;color:var(--textMuted);flex:1;}
+  .plan-foot{font-size:12px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);color:var(--textFaint);}
+
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px;}
+  thead tr{background:var(--surfaceRaised);color:var(--textMuted);text-align:left;}
+  th,td{padding:10px 16px;}
+  th{font-size:12px;font-weight:700;}
+  tbody tr{border-top:1px solid var(--border);}
+  .table-wrap{overflow-x:auto;}
+
+  .empty{border-radius:12px;padding:40px;text-align:center;font-size:14px;color:var(--textFaint);background:var(--surface);border:1px dashed var(--border);margin-top:16px;}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50;}
+  .modal{width:100%;max-width:520px;border-radius:12px;padding:20px;max-height:90vh;overflow-y:auto;background:var(--surface);border:1px solid var(--border);}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .modal-head h2{font-size:26px;margin:0;}
+  .modal-close{background:transparent;color:var(--textFaint);font-size:18px;}
+  .field{display:block;margin-bottom:12px;}
+  .field-label{font-size:12px;font-weight:600;color:var(--textMuted);}
+  .req{color:var(--danger);}
+  .field-body{margin-top:6px;}
+  .form-grid{display:grid;grid-template-columns:1fr;gap:0 16px;}
+  @media (min-width:600px){ .form-grid{grid-template-columns:1fr 1fr;} }
+  .modal-actions{display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);}
+  .modal-actions .btn{flex:1;justify-content:center;}
+  .hint{font-size:12px;border-radius:8px;padding:8px 12px;margin-bottom:10px;background:var(--successDim);color:var(--success);}
+  .warn-box{font-size:14px;border-radius:8px;padding:10px 14px;background:var(--warningDim);color:var(--warning);margin-top:10px;}
+
+  .loading-wrap{display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:12px;}
+  .spinner{width:26px;height:26px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .fade-in{animation:fadein .2s ease-out;}
+  @keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+<div id="root">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:sans-serif;color:#F4F2EC;background:#0E1012;padding:24px;text-align:center;">
+    <div style="width:26px;height:26px;border-radius:50%;border:3px solid #2C3036;border-top-color:#CFFF3D;animation:spin 0.8s linear infinite;"></div>
+    <div style="font-size:14px;color:#9BA1AA;">Loading UFFC Gym…</div>
+    <div style="font-size:12px;color:#5E646D;max-width:360px;">If this message doesn't go away in a few seconds, you likely don't have an internet connection right now, or a firewall/antivirus is blocking cdn.jsdelivr.net. This app needs internet the first time it loads.</div>
+  </div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg);}}</style>
+
+<script>
+  // Shows a clear on-screen error instead of a silent blank page if anything fails to load.
+  window.addEventListener("error", function (e) {
+    var root = document.getElementById("root");
+    if (root && !root.dataset.appMounted) {
+      root.innerHTML =
+        '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;font-family:sans-serif;color:#F4F2EC;background:#0E1012;padding:24px;text-align:center;">' +
+        '<div style="font-size:32px;">⚠️</div>' +
+        '<div style="font-size:16px;font-weight:700;">The app couldn\'t load</div>' +
+        '<div style="font-size:13px;color:#9BA1AA;max-width:420px;">This usually means there\'s no internet connection right now, or a firewall/antivirus/ad-blocker is blocking cdn.jsdelivr.net. Try a different network or temporarily disable blockers, then reopen this file.</div>' +
+        '<div style="font-size:11px;color:#5E646D;margin-top:6px;">Technical detail: ' + (e.message || "unknown error") + '</div>' +
+        '</div>';
+    }
+  });
+  setTimeout(function () {
+    var root = document.getElementById("root");
+    if (root && !root.dataset.appMounted && typeof React === "undefined") {
+      root.innerHTML =
+        '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;font-family:sans-serif;color:#F4F2EC;background:#0E1012;padding:24px;text-align:center;">' +
+        '<div style="font-size:32px;">⚠️</div>' +
+        '<div style="font-size:16px;font-weight:700;">The app couldn\'t load</div>' +
+        '<div style="font-size:13px;color:#9BA1AA;max-width:420px;">The required files never arrived from cdn.jsdelivr.net. Check your internet connection, try a different Wi-Fi/network, or temporarily disable any firewall, antivirus, or ad-blocker extension, then reopen this file.</div>' +
+        '</div>';
+    }
+  }, 8000);
+</script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo } = React;
+
+/* ---------------- helpers ---------------- */
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const todayStr = () => new Date().toISOString().slice(0, 10);
+const addMonths = (dateStr, n) => {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setMonth(d.getMonth() + n);
+  return d.toISOString().slice(0, 10);
+};
+const daysFromToday = (dateStr) => {
+  const today = new Date(todayStr() + "T00:00:00");
+  const target = new Date(dateStr + "T00:00:00");
+  return Math.round((target - today) / 86400000);
+};
+const fmtDate = (dateStr) => {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+};
+const fmtMoney = (n) => "₹" + Number(n || 0).toLocaleString("en-IN");
+const digitsOnly = (s) => (s || "").replace(/\D/g, "");
+const waNumber = (mobile) => {
+  const d = digitsOnly(mobile);
+  return d.length === 10 ? "91" + d : d;
+};
+function memberStatus(member) {
+  if (!member.nextDueDate) return { key: "active", label: "Active", days: null };
+  const days = daysFromToday(member.nextDueDate);
+  if (days < 0) return { key: "overdue", label: "Overdue", days };
+  if (days <= 7) return { key: "due-soon", label: "Due Soon", days };
+  return { key: "active", label: "Active", days };
+}
+
+/* ---------------- local storage (saves right on this PC/browser) ---------------- */
+const STORE_PREFIX = "uffc_gym:";
+const storage = {
+  get(key) {
+    try {
+      const raw = localStorage.getItem(STORE_PREFIX + key);
+      return raw === null ? null : JSON.parse(raw);
+    } catch (e) { return null; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(STORE_PREFIX + key, JSON.stringify(value)); return true; }
+    catch (e) { return false; }
+  },
+};
+
+function defaultPlans() {
+  return [
+    { id: uid(), name: "Rookie", price: 1200, description: "Open gym floor access plus the cardio zone. Built for people establishing the habit." },
+    { id: uid(), name: "Contender", price: 2000, description: "Everything in Rookie, plus group boxing & MMA conditioning classes." },
+    { id: uid(), name: "Champion", price: 3200, description: "Full facility access, all classes, one personal training session a week, and a nutrition plan." },
+  ];
+}
+function seedMembers(plans) {
+  const p = (i) => (plans[i] || {}).id;
+  const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+  const m1 = daysAgo(38), m2 = daysAgo(25), m3 = daysAgo(6);
+  return [
+    { id: uid(), name: "Rohit Sharma", age: 27, gender: "Male", mobile: "9876543210", email: "rohit.s@example.com", address: "12 MG Road, Indore", planId: p(0), joinDate: m1, nextDueDate: addMonths(m1, 1), lastPaymentDate: null },
+    { id: uid(), name: "Ananya Deshmukh", age: 24, gender: "Female", mobile: "9812345678", email: "ananya.d@example.com", address: "45 Palasia, Indore", planId: p(1), joinDate: m2, nextDueDate: addMonths(m2, 1), lastPaymentDate: null },
+    { id: uid(), name: "Karan Mehta", age: 31, gender: "Male", mobile: "9900112233", email: "karan.m@example.com", address: "7 Vijay Nagar, Indore", planId: p(0), joinDate: m3, nextDueDate: addMonths(m3, 1), lastPaymentDate: null },
+  ];
+}
+
+/* ---------------- small UI atoms ---------------- */
+function StatusBadge({ status }) {
+  const map = {
+    overdue: { cls: "badge-overdue", label: "OVERDUE" },
+    "due-soon": { cls: "badge-duesoon", label: "DUE SOON" },
+    active: { cls: "badge-active", label: "PAID UP" },
+  };
+  const s = map[status.key];
+  return <span className={"badge " + s.cls}><span>{s.label}</span></span>;
+}
+function IconBtn({ label, onClick, title }) {
+  return <button className="iconbtn" onClick={onClick} title={title}>{label}</button>;
+}
+function Field({ label, children, required }) {
+  return (
+    <label className="field">
+      <span className="field-label">{label} {required && <span className="req">*</span>}</span>
+      <div className="field-body">{children}</div>
+    </label>
+  );
+}
+
+/* ---------------- app ---------------- */
+function App() {
+  const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState([]);
+  const [plans, setPlans] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [search, setSearch] = useState("");
+  const [memberForm, setMemberForm] = useState(null);
+  const [planForm, setPlanForm] = useState(null);
+  const [feeForMember, setFeeForMember] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+
+  useEffect(() => {
+    let p = storage.get("gym_plans");
+    let m = storage.get("gym_members");
+    let pay = storage.get("gym_payments");
+    if (!p) { p = defaultPlans(); storage.set("gym_plans", p); }
+    if (!m) { m = seedMembers(p); storage.set("gym_members", m); }
+    if (!pay) { pay = []; storage.set("gym_payments", pay); }
+    setPlans(p); setMembers(m); setPayments(pay);
+    setLoading(false);
+  }, []);
+
+  const saveMembers = (next) => { setMembers(next); storage.set("gym_members", next); };
+  const savePlans = (next) => { setPlans(next); storage.set("gym_plans", next); };
+  const savePayments = (next) => { setPayments(next); storage.set("gym_payments", next); };
+
+  const planById = useMemo(() => Object.fromEntries(plans.map((p) => [p.id, p])), [plans]);
+  const enriched = useMemo(() => members.map((m) => ({ ...m, status: memberStatus(m), plan: planById[m.planId] })), [members, planById]);
+  const dueSoon = enriched.filter((m) => m.status.key === "due-soon").sort((a, b) => a.status.days - b.status.days);
+  const overdue = enriched.filter((m) => m.status.key === "overdue").sort((a, b) => a.status.days - b.status.days);
+  const filteredMembers = enriched.filter((m) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return m.name.toLowerCase().includes(q) || digitsOnly(m.mobile).includes(digitsOnly(q));
+  });
+
+  function openWhatsApp(member) {
+    const plan = planById[member.planId];
+    const phone = waNumber(member.mobile);
+    const status = memberStatus(member);
+    const line = status.key === "overdue"
+      ? "your membership fee of " + fmtMoney(plan && plan.price) + " was due on " + fmtDate(member.nextDueDate) + " and is now overdue"
+      : "your membership fee of " + fmtMoney(plan && plan.price) + " is due on " + fmtDate(member.nextDueDate);
+    const msg = "Hi " + member.name + ", this is a reminder from UFFC Gym that " + line + ". Please make the payment at your earliest convenience so we can keep your membership active. Thank you! 💪";
+    window.open("https://wa.me/" + phone + "?text=" + encodeURIComponent(msg), "_blank");
+  }
+
+  function saveMember(data) {
+    if (data.id) {
+      saveMembers(members.map((m) => (m.id === data.id ? { ...m, ...data } : m)));
+    } else {
+      const joinDate = data.joinDate || todayStr();
+      const newMember = { ...data, id: uid(), joinDate, nextDueDate: addMonths(joinDate, 1), lastPaymentDate: null };
+      saveMembers([newMember, ...members]);
+    }
+    setMemberForm(null);
+  }
+  function deleteMember(id) {
+    saveMembers(members.filter((m) => m.id !== id));
+    savePayments(payments.filter((p) => p.memberId !== id));
+    setConfirmDelete(null);
+  }
+  function savePlan(data) {
+    if (data.id) savePlans(plans.map((p) => (p.id === data.id ? { ...p, ...data } : p)));
+    else savePlans([...plans, { ...data, id: uid() }]);
+    setPlanForm(null);
+  }
+  function deletePlan(id) { savePlans(plans.filter((p) => p.id !== id)); setConfirmDelete(null); }
+  function recordPayment(member, amount, date, note) {
+    const payment = { id: uid(), memberId: member.id, amount: Number(amount), date, note: note || "", recordedAt: todayStr() };
+    savePayments([payment, ...payments]);
+    saveMembers(members.map((m) => (m.id === member.id ? { ...m, nextDueDate: addMonths(date, 1), lastPaymentDate: date } : m)));
+    setFeeForMember(null);
+  }
+
+  const NAV = [
+    { id: "dashboard", label: "Dashboard", icon: "📊" },
+    { id: "members", label: "Members", icon: "👥" },
+    { id: "plans", label: "Plans", icon: "💳" },
+    { id: "fees", label: "Fees", icon: "💰" },
+  ];
+
+  if (loading) {
+    return (
+      <div className="loading-wrap">
+        <div className="spinner"></div>
+        <span style={{ color: "var(--textMuted)", fontSize: 14 }}>Loading UFFC Gym…</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app">
+      <aside className="sidebar">
+        <Logo />
+        <nav className="navlist">
+          {NAV.map((n) => (
+            <button key={n.id} className={"navitem" + (activeTab === n.id ? " active" : "")} onClick={() => setActiveTab(n.id)}>
+              <span>{n.icon}</span>{n.label}
+            </button>
+          ))}
+        </nav>
+        <div className="navfoot">Data saved on this computer</div>
+      </aside>
+
+      <div className="main-col">
+        <div className="topbar"><Logo compact /></div>
+        <main className="content">
+          {activeTab === "dashboard" && (
+            <Dashboard enriched={enriched} payments={payments} dueSoon={dueSoon} overdue={overdue}
+              onWhatsApp={openWhatsApp} onRecordFee={(m) => setFeeForMember(m)} onGoMembers={() => setActiveTab("members")} />
+          )}
+          {activeTab === "members" && (
+            <MembersView members={filteredMembers} search={search} setSearch={setSearch} plans={plans}
+              onAdd={() => setMemberForm({})} onEdit={(m) => setMemberForm(m)}
+              onDelete={(m) => setConfirmDelete({ type: "member", id: m.id, label: m.name })}
+              onWhatsApp={openWhatsApp} onRecordFee={(m) => setFeeForMember(m)} />
+          )}
+          {activeTab === "plans" && (
+            <PlansView plans={plans} members={members} onAdd={() => setPlanForm({})} onEdit={(p) => setPlanForm(p)}
+              onDelete={(p) => setConfirmDelete({ type: "plan", id: p.id, label: p.name })} />
+          )}
+          {activeTab === "fees" && (
+            <FeesView payments={payments} members={members} planById={planById} onAdd={() => setFeeForMember(members[0] || null)} />
+          )}
+        </main>
+      </div>
+
+      <div className="bottomnav">
+        {NAV.map((n) => (
+          <button key={n.id} className={activeTab === n.id ? "active" : ""} onClick={() => setActiveTab(n.id)}>
+            <span className="navicon">{n.icon}</span>{n.label}
+          </button>
+        ))}
+      </div>
+
+      {memberForm !== null && <MemberFormModal initial={memberForm} plans={plans} onCancel={() => setMemberForm(null)} onSave={saveMember} />}
+      {planForm !== null && <PlanFormModal initial={planForm} onCancel={() => setPlanForm(null)} onSave={savePlan} />}
+      {feeForMember !== null && (
+        <FeeFormModal members={members} planById={planById} initialMember={feeForMember} onCancel={() => setFeeForMember(null)} onSave={recordPayment} />
+      )}
+      {confirmDelete && (
+        <ConfirmModal label={confirmDelete.label} onCancel={() => setConfirmDelete(null)}
+          onConfirm={() => (confirmDelete.type === "member" ? deleteMember(confirmDelete.id) : deletePlan(confirmDelete.id))} />
+      )}
+    </div>
+  );
+}
+
+function Logo({ compact }) {
+  return (
+    <div className="logo">
+      <div className="logo-badge">🥊</div>
+      <div>
+        <div className="disp logo-title">UFFC GYM</div>
+        {!compact && <div className="logo-sub">MEMBER &amp; FEE MANAGER</div>}
+      </div>
+    </div>
+  );
+}
+
+function Dashboard({ enriched, payments, dueSoon, overdue, onWhatsApp, onRecordFee, onGoMembers }) {
+  const totalMembers = enriched.length;
+  const activePlansCount = useMemo(() => new Set(enriched.map((m) => m.planId)).size, [enriched]);
+  const thisMonthRevenue = useMemo(() => {
+    const now = new Date();
+    const ym = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+    return payments.filter((p) => (p.date || "").startsWith(ym)).reduce((s, p) => s + Number(p.amount || 0), 0);
+  }, [payments]);
+  const stats = [
+    { label: "Total Members", value: totalMembers, icon: "👥" },
+    { label: "Plans In Use", value: activePlansCount, icon: "💳" },
+    { label: "Due This Week", value: dueSoon.length, icon: "⏰" },
+    { label: "Overdue", value: overdue.length, icon: "⚠️" },
+  ];
+  return (
+    <div className="fade-in">
+      <h1 className="disp page-title">DASHBOARD</h1>
+      <p style={{ fontSize: 14, marginTop: 4, color: "var(--textMuted)" }}>
+        This month's collection: <span style={{ color: "var(--success)", fontWeight: 700 }}>{fmtMoney(thisMonthRevenue)}</span>
+      </p>
+      <div className="stats-grid" style={{ marginTop: 20 }}>
+        {stats.map((s) => (
+          <div key={s.label} className="stat-card">
+            <div className="stat-icon">{s.icon}</div>
+            <div className="disp stat-val">{s.value}</div>
+            <div className="stat-label">{s.label}</div>
+          </div>
+        ))}
+      </div>
+      <ReminderPanel title="OVERDUE — NOT PAID" color="var(--danger)" list={overdue} emptyText="Nobody is overdue right now. Clean sheet."
+        onWhatsApp={onWhatsApp} onRecordFee={onRecordFee} />
+      <ReminderPanel title="DUE WITHIN 7 DAYS" color="var(--warning)" list={dueSoon} emptyText="No renewals due in the next week."
+        onWhatsApp={onWhatsApp} onRecordFee={onRecordFee} />
+      <button onClick={onGoMembers} className="btn" style={{ marginTop: 16, background: "transparent", border: "none", color: "var(--accent)", padding: 0 }}>
+        View all members →
+      </button>
+    </div>
+  );
+}
+
+function ReminderPanel({ title, color, list, emptyText, onWhatsApp, onRecordFee }) {
+  return (
+    <div className="panel">
+      <div className="panel-head">
+        <span className="disp title" style={{ color }}>{title}</span>
+        <span className="panel-count" style={{ color }}>{list.length}</span>
+      </div>
+      {list.length === 0 ? (
+        <div className="panel-empty">{emptyText}</div>
+      ) : (
+        list.map((m) => (
+          <div key={m.id} className="panel-row">
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div className="row-name">{m.name}</div>
+              <div className="row-sub">
+                {(m.plan && m.plan.name) || "No plan"} · {fmtMoney(m.plan && m.plan.price)} · due {fmtDate(m.nextDueDate)}
+                {m.status.key === "overdue" ? " (" + Math.abs(m.status.days) + "d late)" : " (in " + m.status.days + "d)"}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn btn-wa btn-sm" onClick={() => onWhatsApp(m)}>💬 WhatsApp</button>
+              <button className="btn btn-sm" onClick={() => onRecordFee(m)}>Record Fee</button>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function MembersView({ members, search, setSearch, plans, onAdd, onEdit, onDelete, onWhatsApp, onRecordFee }) {
+  return (
+    <div className="fade-in">
+      <div className="row-between">
+        <h1 className="disp page-title">MEMBERS</h1>
+        <button className="btn btn-accent" onClick={onAdd}>➕ Add Member</button>
+      </div>
+      <div className="search-wrap">
+        <span className="ico">🔍</span>
+        <input className="input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or mobile…" />
+      </div>
+      {plans.length === 0 && <div className="warn-box">Create a plan first so you can assign one to new members.</div>}
+      {members.length === 0 ? (
+        <div className="empty">No members yet. Add your first member to get started.</div>
+      ) : (
+        <div className="member-grid">
+          {members.map((m) => (
+            <div key={m.id} className="member-card">
+              <div className="member-top">
+                <div style={{ minWidth: 0 }}>
+                  <div className="member-name">{m.name}</div>
+                  <div className="member-sub">{m.age} yrs · {m.gender} · {(m.plan && m.plan.name) || "No plan"}</div>
+                </div>
+                <StatusBadge status={m.status} />
+              </div>
+              <div className="member-meta">
+                <div>📞 {m.mobile}</div>
+                <div>✉️ {m.email}</div>
+                <div>📍 {m.address}</div>
+                <div>📅 Joined {fmtDate(m.joinDate)} · Next due {fmtDate(m.nextDueDate)}</div>
+              </div>
+              <div className="member-actions">
+                <button className="btn btn-wa btn-sm" onClick={() => onWhatsApp(m)}>💬 Remind</button>
+                <button className="btn btn-sm" onClick={() => onRecordFee(m)}>Record Fee</button>
+                <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+                  <IconBtn label="✏️" title="Edit" onClick={() => onEdit(m)} />
+                  <IconBtn label="🗑️" title="Delete" onClick={() => onDelete(m)} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MemberFormModal({ initial, plans, onCancel, onSave }) {
+  const [form, setForm] = useState({
+    id: initial.id || null, name: initial.name || "", age: initial.age || "", gender: initial.gender || "Male",
+    mobile: initial.mobile || "", email: initial.email || "", address: initial.address || "",
+    planId: initial.planId || (plans[0] && plans[0].id) || "", joinDate: initial.joinDate || todayStr(),
+  });
+  const isEdit = !!initial.id;
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  return (
+    <Modal title={isEdit ? "Edit Member" : "Add Member"} onCancel={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSave({ ...form, age: Number(form.age) }); }}>
+        <div className="form-grid">
+          <Field label="Full Name" required><input required value={form.name} onChange={set("name")} className="input" placeholder="Rohit Sharma" /></Field>
+          <Field label="Age" required><input required type="number" min="10" max="100" value={form.age} onChange={set("age")} className="input" placeholder="27" /></Field>
+          <Field label="Gender" required>
+            <select required value={form.gender} onChange={set("gender")} className="input">
+              <option>Male</option><option>Female</option><option>Other</option>
+            </select>
+          </Field>
+          <Field label="Mobile Number" required><input required value={form.mobile} onChange={set("mobile")} className="input" placeholder="98765 43210" /></Field>
+          <Field label="Email ID" required><input required type="email" value={form.email} onChange={set("email")} className="input" placeholder="name@example.com" /></Field>
+          <Field label="Membership Plan" required>
+            <select required value={form.planId} onChange={set("planId")} className="input">
+              {plans.map((p) => <option key={p.id} value={p.id}>{p.name} — {fmtMoney(p.price)}/mo</option>)}
+            </select>
+          </Field>
+          <Field label="Join Date" required><input required type="date" value={form.joinDate} onChange={set("joinDate")} className="input" /></Field>
+        </div>
+        <Field label="Address" required><textarea required value={form.address} onChange={set("address")} className="input" rows={2} placeholder="Street, area, city" /></Field>
+        <ModalActions onCancel={onCancel} saveLabel={isEdit ? "Save Changes" : "Add Member"} />
+      </form>
+    </Modal>
+  );
+}
+
+function PlansView({ plans, members, onAdd, onEdit, onDelete }) {
+  const countFor = (id) => members.filter((m) => m.planId === id).length;
+  return (
+    <div className="fade-in">
+      <div className="row-between">
+        <h1 className="disp page-title">PLANS</h1>
+        <button className="btn btn-accent" onClick={onAdd}>➕ New Plan</button>
+      </div>
+      <div className="plan-grid">
+        {plans.map((p) => (
+          <div key={p.id} className="plan-card">
+            <div className="row-between" style={{ alignItems: "flex-start" }}>
+              <div className="disp plan-name">{p.name}</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <IconBtn label="✏️" title="Edit" onClick={() => onEdit(p)} />
+                <IconBtn label="🗑️" title="Delete" onClick={() => onDelete(p)} />
+              </div>
+            </div>
+            <div><span className="disp plan-price">{fmtMoney(p.price)}</span><span className="plan-price-sub"> /month</span></div>
+            <p className="plan-desc">{p.description}</p>
+            <div className="plan-foot">{countFor(p.id)} member{countFor(p.id) === 1 ? "" : "s"} on this plan</div>
+          </div>
+        ))}
+        {plans.length === 0 && <div className="empty">No plans yet. Create your first membership plan.</div>}
+      </div>
+    </div>
+  );
+}
+
+function PlanFormModal({ initial, onCancel, onSave }) {
+  const [form, setForm] = useState({ id: initial.id || null, name: initial.name || "", price: initial.price || "", description: initial.description || "" });
+  const isEdit = !!initial.id;
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  return (
+    <Modal title={isEdit ? "Edit Plan" : "New Plan"} onCancel={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSave({ ...form, price: Number(form.price) }); }}>
+        <Field label="Plan Name" required><input required value={form.name} onChange={set("name")} className="input" placeholder="e.g. Contender" /></Field>
+        <Field label="Monthly Price (₹)" required><input required type="number" min="0" value={form.price} onChange={set("price")} className="input" placeholder="2000" /></Field>
+        <Field label="Description"><textarea value={form.description} onChange={set("description")} className="input" rows={3} placeholder="What's included in this plan?" /></Field>
+        <ModalActions onCancel={onCancel} saveLabel={isEdit ? "Save Changes" : "Create Plan"} />
+      </form>
+    </Modal>
+  );
+}
+
+function FeesView({ payments, members, planById, onAdd }) {
+  const memberById = Object.fromEntries(members.map((m) => [m.id, m]));
+  const sorted = [...payments].sort((a, b) => (a.date < b.date ? 1 : -1));
+  const totalCollected = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  return (
+    <div className="fade-in">
+      <div className="row-between">
+        <h1 className="disp page-title">FEE PAYMENTS</h1>
+        <button className="btn btn-accent" disabled={members.length === 0} onClick={onAdd}>➕ Record Payment</button>
+      </div>
+      <div className="stat-card" style={{ marginTop: 16 }}>
+        <div className="stat-label">Total Collected (all time)</div>
+        <div className="disp stat-val" style={{ color: "var(--success)" }}>{fmtMoney(totalCollected)}</div>
+      </div>
+      {sorted.length === 0 ? (
+        <div className="empty">No fee payments recorded yet.</div>
+      ) : (
+        <div className="panel" style={{ marginTop: 16 }}>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Member</th><th>Plan</th><th>Amount</th><th>Paid On</th><th>Note</th></tr></thead>
+              <tbody>
+                {sorted.map((p) => {
+                  const mem = memberById[p.memberId];
+                  return (
+                    <tr key={p.id}>
+                      <td style={{ fontWeight: 600 }}>{mem ? mem.name : "Deleted member"}</td>
+                      <td style={{ color: "var(--textMuted)" }}>{mem ? (planById[mem.planId] && planById[mem.planId].name) : "—"}</td>
+                      <td style={{ color: "var(--success)", fontWeight: 600 }}>{fmtMoney(p.amount)}</td>
+                      <td style={{ color: "var(--textMuted)" }}>{fmtDate(p.date)}</td>
+                      <td style={{ color: "var(--textFaint)" }}>{p.note || "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FeeFormModal({ members, planById, initialMember, onCancel, onSave }) {
+  const [memberId, setMemberId] = useState((initialMember && initialMember.id) || (members[0] && members[0].id) || "");
+  const member = members.find((m) => m.id === memberId);
+  const plan = member ? planById[member.planId] : null;
+  const [amount, setAmount] = useState((plan && plan.price) || "");
+  const [date, setDate] = useState(todayStr());
+  const [note, setNote] = useState("");
+
+  useEffect(() => {
+    const m = members.find((x) => x.id === memberId);
+    const pl = m ? planById[m.planId] : null;
+    setAmount((pl && pl.price) || "");
+  }, [memberId]);
+
+  if (members.length === 0) {
+    return (
+      <Modal title="Record Fee Payment" onCancel={onCancel}>
+        <p style={{ fontSize: 14, color: "var(--textMuted)" }}>Add a member first before recording a payment.</p>
+        <ModalActions onCancel={onCancel} hideSave />
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal title="Record Fee Payment" onCancel={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onSave(member, amount, date, note); }}>
+        <Field label="Member" required>
+          <select required value={memberId} onChange={(e) => setMemberId(e.target.value)} className="input">
+            {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+        </Field>
+        {member && (
+          <div style={{ fontSize: 12, marginBottom: 12, marginTop: -6, color: "var(--textFaint)" }}>
+            Plan: {(plan && plan.name) || "—"} · Current next due date: {fmtDate(member.nextDueDate)}
+          </div>
+        )}
+        <div className="form-grid">
+          <Field label="Amount (₹)" required><input required type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} className="input" /></Field>
+          <Field label="Payment Date" required><input required type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input" /></Field>
+        </div>
+        <Field label="Note (optional)"><input value={note} onChange={(e) => setNote(e.target.value)} className="input" placeholder="e.g. Paid by UPI" /></Field>
+        <div className="hint">Next due date will move to {fmtDate(addMonths(date, 1))}</div>
+        <ModalActions onCancel={onCancel} saveLabel="Save Payment" />
+      </form>
+    </Modal>
+  );
+}
+
+function Modal({ title, children, onCancel }) {
+  return (
+    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="modal fade-in">
+        <div className="modal-head">
+          <h2 className="disp">{title}</h2>
+          <button className="modal-close" onClick={onCancel}>✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+function ModalActions({ onCancel, saveLabel, hideSave }) {
+  return (
+    <div className="modal-actions">
+      <button type="button" className="btn" onClick={onCancel}>Cancel</button>
+      {!hideSave && <button type="submit" className="btn btn-accent">{saveLabel}</button>}
+    </div>
+  );
+}
+function ConfirmModal({ label, onCancel, onConfirm }) {
+  return (
+    <Modal title="Confirm Delete" onCancel={onCancel}>
+      <p style={{ fontSize: 14, color: "var(--textMuted)" }}>
+        Are you sure you want to delete <span style={{ color: "var(--text)", fontWeight: 600 }}>{label}</span>? This can't be undone.
+      </p>
+      <div className="modal-actions">
+        <button className="btn" onClick={onCancel}>Cancel</button>
+        <button className="btn" style={{ background: "var(--danger)", color: "#fff", border: "none" }} onClick={onConfirm}>Delete</button>
+      </div>
+    </Modal>
+  );
+}
+
+document.getElementById("root").dataset.appMounted = "true";
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
